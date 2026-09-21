@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.provider.MediaStore
 import android.webkit.CookieManager
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
@@ -46,13 +47,11 @@ class MainActivity : Activity() {
                     fileChooserCallback?.onReceiveValue(null)
                     fileChooserCallback = filePathCallback
 
-                    val intent = fileChooserParams.createIntent().apply {
-                        addCategory(Intent.CATEGORY_OPENABLE)
+                    val intent = Intent(Intent.ACTION_PICK).apply {
+                        data = MediaStore.Files.getContentUri("external")
                         type = "*/*"
-                        putExtra(
-                            Intent.EXTRA_MIME_TYPES,
-                            arrayOf("image/*", "video/*")
-                        )
+                        putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+                        putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/*", "video/*"))
                     }
 
                     return try {
