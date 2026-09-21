@@ -10,7 +10,7 @@ import android.widget.Toast
 
 class MainActivity : Activity() {
     private lateinit var web: WebView
-    private val homeUrl = "https://socialpilot-ai-yvo2.hatchable.site/"
+    private val homeUrl = "https://socialpilot-ai-yvo2.hatchable.site/?native=1"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -23,10 +23,6 @@ class MainActivity : Activity() {
             CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-                    if (request.url.scheme == "socialpilot") {
-                        Toast.makeText(this@MainActivity, "Gallery sharing is ready. Return to Gallery and tap Share → SocialPilot AI.", Toast.LENGTH_LONG).show()
-                        return true
-                    }
                     return false
                 }
             }
