@@ -39,10 +39,28 @@ class MainActivity : Activity() {
                 override fun shouldOverrideUrlLoading(
                     view: WebView,
                     request: WebResourceRequest
-                ): Boolean = false
+                ): Boolean {
+                    val uri = request.url
+                    if (uri.scheme == "http" || uri.scheme == "https") return false
+                    return try {
+                        startActivity(Intent(Intent.ACTION_VIEW, uri))
+                        true
+                    } catch (_: Exception) {
+                        false
+                    }
+                }
 
                 @Suppress("DEPRECATION")
-                override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean = false
+                override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
+                    val uri = Uri.parse(url)
+                    if (uri.scheme == "http" || uri.scheme == "https") return false
+                    return try {
+                        startActivity(Intent(Intent.ACTION_VIEW, uri))
+                        true
+                    } catch (_: Exception) {
+                        false
+                    }
+                }
             }
 
             webChromeClient = object : WebChromeClient() {
@@ -75,6 +93,7 @@ class MainActivity : Activity() {
 
         setContentView(web)
         if (savedInstanceState == null) web.loadUrl(homeUrl) else web.restoreState(savedInstanceState)
+        CookieManager.getInstance().flush()
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
