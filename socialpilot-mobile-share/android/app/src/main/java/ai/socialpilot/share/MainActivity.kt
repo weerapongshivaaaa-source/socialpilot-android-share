@@ -4,11 +4,11 @@ import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.provider.MediaStore
 import android.webkit.CookieManager
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 
@@ -20,15 +20,19 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        CookieManager.getInstance().setAcceptCookie(true)
 
         web = WebView(this).apply {
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
+            settings.databaseEnabled = true
             settings.allowFileAccess = false
             settings.allowContentAccess = true
             settings.mediaPlaybackRequiresUserGesture = false
-
-            CookieManager.getInstance().setAcceptCookie(true)
+            settings.cacheMode = WebSettings.LOAD_DEFAULT
+            settings.javaScriptCanOpenWindowsAutomatically = true
+            settings.setSupportMultipleWindows(false)
+            settings.loadsImagesAutomatically = true
             CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
 
             webViewClient = object : WebViewClient() {
@@ -36,6 +40,9 @@ class MainActivity : Activity() {
                     view: WebView,
                     request: WebResourceRequest
                 ): Boolean = false
+
+                @Suppress("DEPRECATION")
+                override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean = false
             }
 
             webChromeClient = object : WebChromeClient() {
@@ -47,8 +54,8 @@ class MainActivity : Activity() {
                     fileChooserCallback?.onReceiveValue(null)
                     fileChooserCallback = filePathCallback
 
-                    val intent = Intent(Intent.ACTION_PICK).apply {
-                        data = MediaStore.Files.getContentUri("external")
+                    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                        addCategory(Intent.CATEGORY_OPENABLE)
                         type = "*/*"
                         putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
                         putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/*", "video/*"))
@@ -73,18 +80,11 @@ class MainActivity : Activity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode != fileChooserRequestCode) return
-
         val results = if (resultCode == RESULT_OK && data != null) {
-            val clip = data.clipData
-            if (clip != null) {
+            data.clipData?.let { clip ->
                 Array(clip.itemCount) { i -> clip.getItemAt(i).uri }
-            } else {
-                data.data?.let { arrayOf(it) }
-            }
-        } else {
-            null
-        }
-
+            } ?: data.data?.let { arrayOf(it) }
+        } else null
         fileChooserCallback?.onReceiveValue(results)
         fileChooserCallback = null
     }
