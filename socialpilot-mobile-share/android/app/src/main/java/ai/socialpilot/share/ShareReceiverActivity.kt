@@ -54,7 +54,7 @@ class ShareReceiverActivity: Activity() {
   val c=URL(endpoint).openConnection() as HttpURLConnection
   c.requestMethod="POST";c.doOutput=true;c.connectTimeout=30000;c.readTimeout=120000
   if(!authorization.isNullOrBlank()) c.setRequestProperty("Authorization",authorization)
-  if(cookie.isNotBlank()) c.setRequestProperty("Cookie",cookie)
+  if(!cookie.isNullOrBlank()) c.setRequestProperty("Cookie",cookie)
   c.setRequestProperty("Content-Type","multipart/form-data; boundary=$boundary")
   DataOutputStream(c.outputStream).use{out->
    var sent=0
