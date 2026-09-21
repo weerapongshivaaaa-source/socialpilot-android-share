@@ -42,6 +42,8 @@ class ShareReceiverActivity: Activity() {
   val stream=if(code in 200..299)c.inputStream else c.errorStream
   val body=stream?.bufferedReader()?.use{it.readText()} ?: ""
   c.disconnect()
+  if(code == 401) throw IllegalStateException("Device pairing expired. Open SocialPilot → Mobile Share → Pair this device, then tap Open Android Share App once.")
+  if(code == 413) throw IllegalStateException("This media file is too large. Use a social-ready image/video under 25 MB.")
   if(code !in 200..299) throw IllegalStateException("HTTP $code ${body.take(160)}")
   return "posted successfully"
  }
