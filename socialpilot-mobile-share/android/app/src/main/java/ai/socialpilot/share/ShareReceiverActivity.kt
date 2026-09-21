@@ -17,6 +17,8 @@ class ShareReceiverActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         CookieManager.getInstance().setAcceptCookie(true)
+        val shareCookie = CookieManager.getInstance().getCookie("https://socialpilot-ai-yvo2.hatchable.site/") ?: ""
+        CookieManager.getInstance().flush()
 
         val uris = when (intent.action) {
             Intent.ACTION_SEND_MULTIPLE ->
@@ -56,6 +58,7 @@ class ShareReceiverActivity : Activity() {
         connection.connectTimeout = 30000
         connection.readTimeout = 120000
         connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
+        if (shareCookie.isNotBlank()) connection.setRequestProperty("Cookie", shareCookie)
 
         DataOutputStream(connection.outputStream).use { out ->
             var sent = 0
