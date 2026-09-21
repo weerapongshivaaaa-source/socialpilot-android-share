@@ -44,8 +44,9 @@ class MainActivity : Activity() {
 
         if (savedInstanceState == null) {
             val data = intent?.data
-            val pairToken = data?.getQueryParameter("token")
-            if (data?.scheme == "socialpilot" && data.host == "pair" && !pairToken.isNullOrBlank()) {
+            val pairToken = data?.getQueryParameter("token")?.trim().orEmpty()
+            if (data?.scheme == "socialpilot" && data.host == "pair" && pairToken.isNotBlank()) {
+                getSharedPreferences("socialpilot", MODE_PRIVATE).edit().putString("share_token", pairToken).apply()
                 web.loadUrl("https://socialpilot-ai-yvo2.hatchable.site/mobile-share.html?native=1&token=" + Uri.encode(pairToken))
             } else {
                 web.loadUrl(homeUrl)
@@ -62,7 +63,8 @@ class MainActivity : Activity() {
         if (uri?.scheme == "socialpilot" && uri.host == "pair") {
             val token = uri.getQueryParameter("token").orEmpty()
             if (token.isNotBlank()) {
-                web.loadUrl("https://socialpilot-ai-yvo2.hatchable.site/mobile-share.html?native=1&token=" + Uri.encode(token))
+                getSharedPreferences("socialpilot", MODE_PRIVATE).edit().putString("share_token", token.trim()).apply()
+                web.loadUrl("https://socialpilot-ai-yvo2.hatchable.site/mobile-share.html?native=1&token=" + Uri.encode(token.trim()))
             }
         }
     }
