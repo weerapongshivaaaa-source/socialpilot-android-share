@@ -15,7 +15,7 @@ class ShareReceiverActivity: Activity() {
   val prefs=getSharedPreferences("socialpilot",MODE_PRIVATE)
   val token=prefs.getString("share_token","") ?: ""
   val uris=when(intent.action){Intent.ACTION_SEND_MULTIPLE -> intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM) ?: arrayListOf(); Intent.ACTION_SEND -> listOfNotNull(intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)); else -> emptyList()}
-  if(token.isBlank()){Toast.makeText(this,"Open SocialPilot Share Pairing and save the token first.",Toast.LENGTH_LONG).show();finish();return}
+  if(token.isBlank()){Toast.makeText(this,"Pair this phone once in SocialPilot → Mobile Share, then try Share again.",Toast.LENGTH_LONG).show();finish();return}
   if(uris.isEmpty()){Toast.makeText(this,"No photo or video was received.",Toast.LENGTH_LONG).show();finish();return}
   Thread{try{val result=upload(token,uris.take(10));runOnUiThread{Toast.makeText(this,"SocialPilot: $result",Toast.LENGTH_LONG).show();finish()}}catch(e:Exception){runOnUiThread{Toast.makeText(this,"SocialPilot could not post: ${e.message}",Toast.LENGTH_LONG).show();finish()}}}.start()
  }
