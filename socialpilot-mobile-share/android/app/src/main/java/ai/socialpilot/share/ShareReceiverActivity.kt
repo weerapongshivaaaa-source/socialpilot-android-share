@@ -11,59 +11,79 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.UUID
 
-class ShareReceiverActivity: Activity() {
- private val endpoint="https://socialpilot-ai-yvo2.hatchable.site/api/share/ingest"
+class ShareReceiverActivity : Activity() {
+    private val endpoint = "https://socialpilot-ai-yvo2.hatchable.site/api/share/ingest"
 
- override fun onCreate(savedInstanceState:Bundle?) {
-  super.onCreate(savedInstanceState)
-  CookieManager.getInstance().setAcceptCookie(true)
-  val cookie=CookieManager.getInstance().getCookie("https://socialpilot-ai-yvo2.hatchable.site/") ?: ""
-  val uris=when(intent.action){
-   Intent.ACTION_SEND_MULTIPLE -> intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM) ?: arrayListOf()
-   Intent.ACTION_SEND -> listOfNotNull(intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM))
-   else -> emptyList()
-  }
-  if(uris.isEmpty()){Toast.makeText(this,"No photo or video was received.",Toast.LENGTH_LONG).show();finish();return}
-  if(cookie.isBlank()){
-   Toast.makeText(this,"Open SocialPilot once, sign in, then share from Gallery again.",Toast.LENGTH_LONG).show();finish();return
-  }
-  Thread{
-   try{
-    val result=uploadOnce(uris.take(10),cookie)
-    runOnUiThread{Toast.makeText(this,"SocialPilot: $result",Toast.LENGTH_LONG).show();finish()}
-   }catch(e:Exception){
-    runOnUiThread{Toast.makeText(this,"SocialPilot: "+e.message,Toast.LENGTH_LONG).show();finish()}
-   }
-  }.start()
- }
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        CookieManager.getInstance().setAcceptCookie(true)
 
- private fun uploadOnce(uris:List<Uri>,cookie:String):String{
-  val boundary="SocialPilot-"+UUID.randomUUID()
-  val c=URL(endpoint).openConnection() as HttpURLConnection
-  c.requestMethod="POST";c.doOutput=true;c.connectTimeout=30000;c.readTimeout=120000
-  c.setRequestProperty("Cookie",cookie)
-  c.setRequestProperty("Content-Type","multipart/form-data; boundary=$boundary")
-  DataOutputStream(c.outputStream).use{out->
-   var sent=0
-   for((i,uri) in uris.withIndex()){
-    val mime=contentResolver.getType(uri) ?: continue
-    if(!mime.startsWith("image/")&&!mime.startsWith("video/")) continue
-    out.writeBytes("--$boundary\r\n")
-    out.writeBytes("Content-Disposition: form-data; name=\"media\"; filename=\"shared-"+(i+1)+"\"\r\n")
-    out.writeBytes("Content-Type: $mime\r\n\r\n")
-    contentResolver.openInputStream(uri)?.use{input->input.copyTo(out);sent++}
-    out.writeBytes("\r\n")
-   }
-   out.writeBytes("--$boundary--\r\n");out.flush()
-   if(sent==0) throw IllegalStateException("No supported image/video files")
-  }
-  val code=c.responseCode
-  val stream=if(code in 200..299)c.inputStream else c.errorStream
-  val body=stream?.bufferedReader()?.use{it.readText()} ?: ""
-  c.disconnect()
-  if(code==413) throw IllegalStateException("This media file is too large. Use an image/video under 25 MB.")
-  if(code==401) throw IllegalStateException("SocialPilot session expired. Open the app and sign in again.")
-  if(code !in 200..299) throw IllegalStateException("HTTP $code "+body.take(220))
-  return "posted successfully"
- }
+        val uris = when (intent.action) {
+            Intent.ACTION_SEND_MULTIPLE ->
+                intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM)?.toList() ?: emptyList()
+            Intent.ACTION_SEND ->
+                listOfNotNull(intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM))
+            else -> emptyList()
+        }
+
+        if (uris.isEmpty()) {
+            Toast.makeText(this, "No photo or video was received.", Toast.LENGTH_LONG).show()
+            finish()
+            return
+        }
+
+        Thread {
+            try {
+                val result = uploadOnce(uris.take(10))
+                runOnUiThread {
+                    Toast.makeText(this, "SocialPilot: $result", Toast.LENGTH_LONG).show()
+                    finish()
+                }
+            } catch (e: Exception) {
+                runOnUiThread {
+                    Toast.makeText(this, "SocialPilot: \${e.message ?: "Upload failed"}", Toast.LENGTH_LONG).show()
+                    finish()
+                }
+            }
+        }.start()
+    }
+
+    private fun uploadOnce(uris: List<Uri>): String {
+        val boundary = "SocialPilot-" + UUID.randomUUID()
+        val connection = URL(endpoint).openConnection() as HttpURLConnection
+        connection.requestMethod = "POST"
+        connection.doOutput = true
+        connection.connectTimeout = 30000
+        connection.readTimeout = 120000
+        connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
+
+        DataOutputStream(connection.outputStream).use { out ->
+            var sent = 0
+            for ((i, uri) in uris.withIndex()) {
+                val mime = contentResolver.getType(uri) ?: continue
+                if (!mime.startsWith("image/") && !mime.startsWith("video/")) continue
+                out.writeBytes("--$boundary\r\n")
+                out.writeBytes("Content-Disposition: form-data; name=\"media\"; filename=\"shared-\${i + 1}\"\r\n")
+                out.writeBytes("Content-Type: $mime\r\n\r\n")
+                contentResolver.openInputStream(uri)?.use { input ->
+                    input.copyTo(out)
+                    sent++
+                }
+                out.writeBytes("\r\n")
+            }
+            out.writeBytes("--$boundary--\r\n")
+            out.flush()
+            if (sent == 0) throw IllegalStateException("No supported image/video files")
+        }
+
+        val code = connection.responseCode
+        val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+        val body = stream?.bufferedReader()?.use { it.readText() } ?: ""
+        connection.disconnect()
+
+        if (code == 413) throw IllegalStateException("This media file is too large. Please use a smaller file.")
+        if (code == 401) throw IllegalStateException("Please open SocialPilot and sign in first.")
+        if (code !in 200..299) throw IllegalStateException("Upload failed (HTTP $code)")
+        return "posted successfully"
+    }
 }
