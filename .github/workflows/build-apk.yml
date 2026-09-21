@@ -2,7 +2,11 @@ name: Build SocialPilot Android APK
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - 'downloads/**'
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -23,6 +27,16 @@ jobs:
           gradle-version: '8.13'
       - name: Build release APK
         run: gradle --no-daemon assembleRelease
+      - name: Publish APK into repository
+        working-directory: .
+        run: |
+          mkdir -p downloads
+          cp socialpilot-mobile-share/android/app/build/outputs/apk/release/app-release.apk downloads/SocialPilotAI-Android.apk
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add downloads/SocialPilotAI-Android.apk
+          git diff --cached --quiet || git commit -m "Publish latest Android APK [skip ci]"
+          git push
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
